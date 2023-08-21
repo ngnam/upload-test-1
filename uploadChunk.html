@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload to server chunk</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 5px;
+        }
+
+        input[type="text"] {
+            outline: none;
+            border: 0.5px solid #ddd;
+        }
+
+        .fieldset {
+            border: 0.7px solid #3e3e3e;
+        }
+
+        .fieldset>p {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+
+        .fieldset>p>label {
+            width: 100px;
+        }
+
+        .fieldset>p>input {
+            flex: 1 0 auto;
+        }
+
+        .upload-info {
+            padding: 0 10px;
+            margin-bottom: 5px;
+        }
+
+        .hr {
+            border-top: 0.5px solid #ddd;
+            padding: 0;
+            margin: 0 10px;
+        }
+
+        .label-success {
+            color: green;
+        }
+
+        .label-error {
+            color: red;
+        }
+
+        #dbi-upload-progress>p {
+            font-style: italic;
+            font-weight: 400;
+        }
+
+        .loader {
+            border-top: 5px solid blue;
+            border-right: 5px solid green;
+            border-bottom: 5px solid red;
+            border-left: 5px solid pink;
+            /* border: 5px solid #f3f3f3; */
+            border-radius: 50%;
+            border-top: 5px solid #3498db;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 2s linear infinite;
+            animation: spin 2s linear infinite;
+            margin: 0 10px 5px 10px;
+        }
+
+        /* Safari */
+        @-webkit-keyframes spin {
+            0% {
+                -webkit-transform: rotate(0deg);
+            }
+
+            100% {
+                -webkit-transform: rotate(360deg);
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .small {
+            float: right;
+            color: #ddd;
+            font-size: 10px;
+            font-style: oblique;
+        }
+
+        .fileName {
+            justify-content: flex-start!important;
+            font-weight: 600;
+        }
+
+        .progress {
+            display: inline-block;
+            margin: 0 15px;
+            width: 350px;
+        }
+        
+    </style>
+</head>
+
+<body>
+
+    <p>API Core upload/chunked Test: http://ott.vstream.iguidevietnam.com/storage-api/Media/Upload/Chunked</p>
+
+    <p>API core Production: https://api-ottcore.iguidevietnam.com/storage-api/Media/Upload/Chunked</p>
+
+    <select name="selectServerUpload" id="selectServerUpload">
+        <option value="http://103.82.31.215:8028/stream-hub/api/v1/upload/chunked">
+            http://103.82.31.215:8028/stream-hub
+        </option>
+        <option value="https://api_ws.vtcesports.vn/Stream-Hub/api/v1/upload/chunked">
+            https://api_ws.vtcesports.vn/Stream-Hub
+        </option>
+    </select>
+
+    <br />
+
+    <div id="upload-infomation">
+        <fieldset class="fieldset">
+            <legend>
+                <h3>Tải tệp tin video</h3>
+            </legend>
+
+            <div class="upload-info">
+                <label>Chọn video/mp4: <input type="file" id="file" accept="video/mp4"></label>
+            </div>
+            <progress id="progress" value=0 max=1 style="display:none" class="upload-info progress"></progress>
+
+            <div id="dbi-upload-progress" class="upload-info">
+                <!-- <p>Chunks #1" + " / " + segments + ". Total uploaded: " + "1%"</p> -->
+            </div>
+            <div id="dbi-upload-status" class="upload-info" style="display: none;">
+                <!-- <p class="label-success">Tệp tin đang tải lên...</p> -->
+                <!-- <p class="label-success">Đã tải lên hoàn tất!</p> -->
+                <!-- <p class="label-error">Có lỗi xảy ra khi tải lên tệp tin!</p> -->
+            </div>
+            <div class="loader" id="loader" style="display: none;"></div>
+            <div id="video-infomation" style="display: none;">
+                <div id="form-video-infomation">
+                    <fieldset class="fieldset">
+                        <legend>
+                            <h3>Thông tin Video tải lên:</h3>
+                        </legend>
+                        <p id="fileName" class="fileName">fileName</p>
+                        <p>
+                            <label for="video-infomation-mediaId">MediaId:</label>
+                            <input type="text" id="video-infomation-mediaId" value="0" readonly />
+                        </p>
+                        <p>
+                            <label for="video-infomation-platformId">PlatformId:</label>
+                            <input type="text" id="video-infomation-platformId" value="1" readonly />
+                        </p>
+                        <p>
+                            <label for="video-infomation-requestId">RequestId:</label>
+                            <input type="text" id="video-infomation-requestId" value="00000001" readonly />
+                        </p>
+                    </fieldset>
+                </div>
+            </div>
+
+            <!-- <hr class="hr" /> -->
+
+            <div id="footer" class="upload-info">
+                <button type="button" id="btn-confirm" onclick="return CloseMySelf(true)" disabled>Xác nhận</button>
+                <button type="button" id="btn-cancel" onclick="return CloseMySelf(false)">Hủy bỏ</button>
+
+                <small class="small"></small>
+            </div>
+
+        </fieldset>
+    </div>
+
+    <!-- <script src="https://cdn.jsdelivr.net/npm/eruda"></script> -->
+    <script src="//cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>
+    <script type="text/javascript">
+        //uploadFile(url, chunkBlob, '000000123', 1, fileName, count, segments);
+        var streamHubConfig = {
+            url: 'http://103.82.31.215:8028/stream-hub/api/v1/upload/chunked',
+            platformId: '1', 
+            requestId: '000000123'
+        };
+
+        //?url=http://103.82.31.215:8028/stream-hub/api/v1/upload/chunked&platformId=1&requestId=000000123
+        
+        var query = window.location.search.substring(1);
+        var qs = parse_query_string(query);
+
+       console.log(qs);
+
+        // DOM Definition
+        const selectServerUpload = document.getElementById('selectServerUpload');
+        const file = document.getElementById('file');
+        const progress = document.getElementById('progress');
+        const uploadProgress = document.getElementById("dbi-upload-progress");
+        const uploadStatus = document.getElementById("dbi-upload-status");
+        const loader = document.getElementById('loader');
+        const videoInfo = document.getElementById('video-infomation');
+        const footer = document.getElementById('footer');
+        const btnConfirm = document.getElementById('btn-confirm');
+        const btnCancel = document.getElementById('btn-cancel');
+        const fileNameInfo = document.getElementById('fileName');
+        const VideoMediaId = document.getElementById('video-infomation-mediaId');
+        const VideoPlatformId = document.getElementById('video-infomation-platformId');
+        const VideoRequestId = document.getElementById('video-infomation-requestId');
+
+        function parse_query_string(query) {
+            var vars = query.split("&");
+            var query_string = {};
+            for (var i = 0; i < vars.length; i++) {
+                var pair = vars[i].split("=");
+                var key = decodeURIComponent(pair.shift());
+                var value = decodeURIComponent(pair.join("="));
+                // If first entry with this name
+                if (typeof query_string[key] === "undefined") {
+                    query_string[key] = value;
+                    // If second entry with this name
+                } else if (typeof query_string[key] === "string") {
+                    var arr = [query_string[key], value];
+                    query_string[key] = arr;
+                    // If third or later entry with this name
+                } else {
+                    query_string[key].push(value);
+                }
+            }
+            return query_string;
+        }
+        // CloseMySelf
+        function CloseMySelf(sender) {
+            if (!sender) {
+                window.close();
+                return false;
+            }
+
+            try {
+                if (window.opener != null && !window.opener.closed) {
+                    // var txtName = window.opener.document.getElementById("txtName"); // ID này là của parent form
+                    // txtName.value = value;
+                    var data = {
+                        mediaId: VideoMediaId.value,
+                        platformId: VideoPlatformId.value
+                    };
+                    window.opener.HandlePopupResult(data);
+                }
+            }
+            catch (err) {
+                console.log('CloseMySelf', err);
+                return false;
+            }
+            window.close();
+            return false;
+        }
+
+        function Main() {
+
+            // Declare Variables
+            var url = 'http://103.82.31.215:8028/stream-hub/api/v1/upload/chunked';
+            var fileName = '';
+            var errorChunk;
+
+            // change server upload
+            selectServerUpload.onchange = function (e) {
+                url = e.target.value;
+                streamHubConfig.url = e.target.value; 
+                console.log('streamHubConfig:');
+                console.log(streamHubConfig);
+            }
+
+            // init footer copyrighter
+            footer.lastElementChild.innerHTML = '&copy; Provider by nam.nguyenvan - tele+ +840563862715';
+
+            // validation file input type
+            function validateFileFormat() {
+                //verifyAccept('video/mp4', 'image/*, video/*')
+                // var type_regex = new RegExp(file.accept.replace(/\*/g, '.\*').replace(/\,/g, '|'));
+                // return type_regex.test(file.files[0].type);
+                return (new RegExp(file.accept.replace(/\*/g, '.\*'))).test(file.files[0].type);
+            }
+
+            // when file change
+            file.onchange = function (e) {
+                // check if file has changed
+                if (file && file.files.length == 0) return;
+                // check validate file
+                if (!validateFileFormat()) {
+                    alert('invalid file format Video/mp4');
+                    file.value = null;
+                    return;
+                }
+                fileName = file.files[0].name;
+                var fr = new FileReader();
+                fr.onprogress = function (e) {
+                    progress.value = e.loaded / e.total
+                };
+                fr.onload = startUpload.bind(fr);
+                progress.style.display = "inline-block";
+                fr.readAsArrayBuffer(e.target.files[0]);
+            }
+
+            // Main upload code
+            function startUpload() {
+                // calculate sizes
+                var chunkSize = 1024 << 10; // 1MB, file chunk size
+                var buffer = this.result;
+                var fileSize = buffer.byteLength;
+                var segments = Math.ceil(fileSize / chunkSize);
+                var count = 0;
+
+                // start "upload"            
+                function upload() {
+                    var segSize = Math.min(chunkSize, fileSize - count * chunkSize);
+                    uploadProgress.style.display = 'block';
+                    // disabled input file
+                    // disabled button btnConfirm upload,
+                    btnConfirm.disabled = true;
+                    loader.style.display = 'block';
+                    file.disabled = true;
+                    if (segSize > 0 && !errorChunk) {
+                        var chunk = new Uint8Array(buffer, count++ * chunkSize, segSize); // get a chunk
+                        var chunkBlob = new Blob([chunk], { type: "application/octet-stream" });
+                        progress.value = count / segments;
+                        console.log(count, segSize, fileSize, segments);
+
+                        var totalPercentComplete = Math.round((count) / segments * 100);
+                        uploadProgress.innerHTML = "<p>Chunks # " + count + " / " + segments + ". Total uploaded: " + totalPercentComplete + "%</p>";
+                        // send chunk to server (here pseudo cycle for demo purpose)
+                        uploadFile(streamHubConfig.url, chunkBlob, streamHubConfig.requestId, streamHubConfig.platformId, fileName, count, segments);
+                        
+                        setTimeout(upload, 5000); // when upload OK, call function again for the next block
+                    }
+                    else {
+                        // if error then show message to uploadStatus and else show success message
+                        if (errorChunk) {
+                            console.error('upload error: ' + JSON.stringify(errorChunk));
+                            uploadStatus.innerHTML = '<p class="label-error">Có lỗi xảy ra khi tải lên tệp tin!</p>';
+                            alert("Có lỗi xảy ra khi tải lên tệp tin: " + fileName + "\n" + 'chunk #' + count + '/' + segments);
+                        } else {
+                            uploadStatus.innerHTML = '<p class="label-success">Đã tải lên hoàn tất!</p>';                            
+                            videoInfo.style.display = 'block';
+                            alert("Upload All done!");
+                        }
+                        
+                        // enabled button btnConfirm
+                        btnConfirm.disabled = false;
+                        file.value = null;
+                        file.disabled = false;
+                        loader.style.display = 'none';
+                        uploadStatus.style.display = 'block';
+                    }
+                }
+                upload();
+
+                function httpRequest(address, reqType, chunkForm, asyncProc) {
+                    var req = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
+                    if (asyncProc) {
+                        req.onreadystatechange = function () {
+                            if (this.readyState == 4) {
+                                asyncProc(this);
+                            }
+                        };
+                    }
+                    req.open(reqType, address, !(!asyncProc));
+                    req.send(chunkForm);
+                    return req;
+                }
+
+                // add process upload chunk
+                function updateProgress(oEvent) {
+                    if (oEvent.lengthComputable) {
+                        var percentComplete = Math.round(oEvent.loaded / oEvent.total * 100);
+
+                        var totalPercentComplete = Math.round((count - 1) / segments * 100 + percentComplete / segments);
+                        document.getElementById("dbi-upload-progress").innerHTML = "Chunks # " + count + " is " + percentComplete + "% uploaded. Total uploaded: " + totalPercentComplete + "%";
+                        console.log(percentComplete);
+                        // ...
+                    } else {
+                        console.log("not computable");
+                        // Unable to compute progress information since the total size is unknown
+                    }
+                }
+
+                // send chunk to server
+                function uploadFile(url, fileUpload, requestId, platformId, fileName, chunkNumber, totalChunk) {
+                    var chunkForm = new FormData();
+                    //chunkForm.append('fname', [file.name, i + 1, 'of', buf.length].join('-'));
+                    chunkForm.append('FileUpload', fileUpload);
+                    chunkForm.append('RequestId', requestId);
+                    chunkForm.append('PlatformId', platformId);
+                    chunkForm.append('FileName', fileName);
+                    chunkForm.append('ChunkNumber', chunkNumber);
+                    chunkForm.append('TotalChunk', totalChunk);
+
+                    var req = httpRequest(url, "POST", chunkForm);  // In this example you don't want to GET the full page contents
+                    if (req.status == 200) {
+                        var resp = JSON.parse(req.response);
+                        console.log('chunk #' + chunkNumber, JSON.stringify(resp));
+                        // { "data": { "requestId": "000000123", "platformId": 1, "mediaId": 1 }, 
+                        // "requestId": -1, "code": 1001, "message": "Success", "errorMessage": "" }
+                        // kiem tra response tra ve
+                        if (resp && resp.data && resp.code > 0) {
+                            if (resp.data.mediaId > 1) {
+                                // bind videoInfo
+                                fileNameInfo.innerHTML = `File ${fileName}`;
+                                VideoMediaId.value = resp.data.mediaId;
+                                VideoPlatformId.value = resp.data.platformId;
+                                VideoRequestId.value = resp.data.requestId;
+                            } else {
+                                uploadStatus.innerHTML = '<p class="label-success">Tệp tin đang tiếp tục tải lên...</p>';
+                                uploadStatus.style.display = 'block';
+                            }
+                        } else {
+                            console.log('chunk #' + chunkNumber + ': ' + 'error', req.response)
+                            errorChunk = resp;
+                        }
+
+                    } else {
+                        var resp = JSON.parse(req.response);
+                        console.log('chunk #' + chunkNumber + ': ' + 'error', req.response)
+                        errorChunk = resp;
+                    }
+
+                }
+            }
+        };
+        Main();
+    </script>
+
+    <!-- <script>
+        (function () { var script = document.createElement('script'); script.src = "https://cdn.jsdelivr.net/npm/eruda"; document.body.append(script); script.onload = function () { eruda.init(); } })();
+    </script> -->
+
+</body>
+
+</html>

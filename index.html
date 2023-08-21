@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload</title>
+</head>
+
+<body>
+    <button type="button" onclick="uploadFile()">Upload</button>
+    
+    <p id="mediaId"></p>
+    <p id="platformId"></p>
+
+    <script type="text/javascript">
+        var popupUploadFile;
+        function uploadFile() {
+            popupUploadFile = window.open("/uploadChunk.html", "Upload file", "width=600,height=768"); 
+            popupUploadFile.focus();
+        }
+        function HandlePopupResult(result) {
+            console.log("result of popup is: ");
+            console.log(result);
+        }
+    </script>
+</body>
+
+</html>
