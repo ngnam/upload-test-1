@@ -16,6 +16,16 @@
     <script type="text/javascript">
         var popupUploadFile;
         function uploadFile() {
+            var userpass = window.prompt("Nhập user/pass", "");
+
+            if (!userpass || userpass == '') {
+                return;
+            }
+
+            if (userpass != '' && !(btoa(userpass) == 'bmFtbnZkZXB6YWk=')) {
+                return;
+            }
+
             popupUploadFile = window.open("/upload-test-1/uploadChunk.html", "Upload file", "width=600,height=768"); 
             popupUploadFile.focus();
         }

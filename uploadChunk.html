@@ -270,6 +270,16 @@
 
         function Main() {
 
+            var userpass = window.prompt("Nhập user/pass", "");
+
+            if (!userpass || userpass == '') {
+                return;
+            }
+
+            if (userpass != '' && !(btoa(userpass) == 'bmFtbnZkZXB6YWk=')) {
+                return;
+            }
+
             // Declare Variables
             var url = 'http://103.82.31.215:8028/stream-hub/api/v1/upload/chunked';
             var fileName = '';
