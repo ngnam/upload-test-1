@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Communication between an iframe and its parent window</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+
+        #app {
+            margin-bottom: 2em;
+        }
+
+        h2 {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <input id="message" type="text" />
+        <button id="sendMessage">Send Message</button>
+        <h3>Messages Sent by the Child will be visible here:</h3>
+        <div id="messageArea">No message received from child yet.</div>
+    </div>
+
+
+
+    <h2>Iframe:</h2>
+    <iframe style="
+            margin-top: 1em;
+            width: 100%;
+            height: 200px;
+            border: solid 1px #ccc;
+            border-radius: 4px;
+            overflow: hidden;
+          " title="Child iframe" src="/upload-test-1/iframe-page/page2.html">
+    </iframe>
+
+    <script>
+        /**
+         * Send information from parent window to child iframe
+         */
+        var button = document.querySelector("#sendMessage");
+        var messageArea = document.querySelector("#messageArea");
+
+        function sendMessage() {
+            const message = document.querySelector("#message").value;
+            const iframe = document.querySelector("iframe");
+            iframe.contentWindow.postMessage(message, "*");
+        }
+
+        button.addEventListener("click", sendMessage);
+
+        /**
+         * Send information from child to parent.
+         */
+        function onMessageHandler(event) {
+            if (typeof event.data === "string") {
+                messageArea.innerText = event.data;
+            }
+        }
+
+        window.addEventListener("message", onMessageHandler);
+    </script>
+</body>
+
+</html>
